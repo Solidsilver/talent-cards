@@ -27,18 +27,6 @@ type CardTemplateData struct {
 	Source      string
 }
 
-var parentContext, parentContextCancel = chromedp.NewExecAllocator(context.Background(),
-	chromedp.ExecPath(getExecPath()),
-	chromedp.Headless,
-	chromedp.NoDefaultBrowserCheck,
-	chromedp.NoFirstRun,
-	// chromedp.CombinedOutput(os.Stdout),
-)
-
-func Cleanup() {
-	parentContextCancel()
-}
-
 var templateBytes []byte
 
 func init() {
@@ -49,8 +37,8 @@ func init() {
 	}
 }
 
-// CreateTalentCardHTML generates a PNG image for a talent by rendering an HTML template.
-func CreateTalentCardHTML(source string, talent types.TalentSchema, outputDir string) error {
+// CreateTalentCardHTMLWithAllocator generates a PNG image for a talent by rendering an HTML template using the provided allocator.
+func CreateTalentCardHTMLWithAllocator(allocCtx context.Context, source string, talent types.TalentSchema, outputDir string) error {
 	// 1. Prepare data for the template
 	data := CardTemplateData{
 		Name:        talent.Name,
@@ -95,7 +83,7 @@ func CreateTalentCardHTML(source string, talent types.TalentSchema, outputDir st
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	ctx, cancel := chromedp.NewContext(parentContext)
+	ctx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 
 	ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
@@ -106,7 +94,7 @@ func CreateTalentCardHTML(source string, talent types.TalentSchema, outputDir st
 	err = chromedp.Run(ctx,
 		chromedp.Navigate(fileURL),
 		chromedp.WaitVisible(`#card`, chromedp.ByID),
-		chromedp.Sleep(200*time.Millisecond), // Make sure the browser has time to load fonts, styles, and images
+		chromedp.Sleep(1*time.Second), // Increased sleep to ensure all external resources (CSS, fonts, images) are loaded and applied
 		chromedp.Screenshot(`#card`, &screenshotBuf, chromedp.ByID),
 	)
 
@@ -123,7 +111,7 @@ func CreateTalentCardHTML(source string, talent types.TalentSchema, outputDir st
 	return nil
 }
 
-func getExecPath() string {
+func GetExecPath() string {
 	switch runtime.GOOS {
 	case "windows":
 		return `%ProgramFiles%\Google\Chrome\Application\chrome.exe`

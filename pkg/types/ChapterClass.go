@@ -11,7 +11,7 @@ type ChapterClass struct {
 	Variant         *Variant       `json:"variant,omitempty"`
 	By              *string        `json:"by,omitempty"`
 	Description     *Description   `json:"description"`
-	Items           []interface{}  `json:"items,omitempty"`
+	Items           []any          `json:"items,omitempty"`
 	Columns         *Columns       `json:"columns"`
 	Foot            *string        `json:"foot,omitempty"`
 	Rows            []ChapterRow   `json:"rows,omitempty"`

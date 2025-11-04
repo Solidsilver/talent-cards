@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"sync"
 	"talent-cards/pkg/card"
 	"talent-cards/pkg/types"
+
+	"github.com/chromedp/chromedp"
 )
 
 func main() {
@@ -42,18 +46,27 @@ func main() {
 	// Use a semaphore to limit concurrent browser instances to avoid overwhelming your system.
 	talents := make(chan types.TalentSchema, 100)
 
-	for range 10 {
-		wg.Add(1)
-		go func(tchan <-chan types.TalentSchema, wg *sync.WaitGroup) {
+	numCPU := runtime.NumCPU()
+	for id := range numCPU {
+		wg.Go(func() {
 			defer wg.Done()
-			for t := range tchan {
+			// Create unique allocator per worker to avoid singleton lock issues
+			allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(),
+				chromedp.ExecPath(card.GetExecPath()),
+				chromedp.Headless,
+				chromedp.NoDefaultBrowserCheck,
+				chromedp.NoFirstRun,
+				chromedp.UserDataDir(fmt.Sprintf("/tmp/chromedp-cache-%d", id)),
+			)
+			defer allocCancel()
+			for t := range talents {
 				fmt.Printf("  - Generating card for: %s\n", t.Name)
-				err := card.CreateTalentCardHTML(sourcebook.Meta.Source.Full, t, outputDir)
+				err := card.CreateTalentCardHTMLWithAllocator(allocCtx, sourcebook.Meta.Source.Full, t, outputDir)
 				if err != nil {
 					log.Printf("Could not create card for %s: %v", t.Name, err)
 				}
 			}
-		}(talents, &wg)
+		})
 	}
 
 	for _, talent := range sourcebook.Talent {
@@ -62,13 +75,6 @@ func main() {
 	close(talents)
 	wg.Wait()
 
-	card.Cleanup()
-
 	fmt.Println("\nCard generation complete!")
 	fmt.Printf("Cards saved in: %s\n", outputDir)
-}
-
-func TalentWorker(wg *sync.WaitGroup, talent chan *types.TalentSchema) {
-	wg.Add(1)
-
 }

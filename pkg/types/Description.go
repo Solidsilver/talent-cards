@@ -1,7 +1,7 @@
 package types
 
 type Description struct {
-	AnythingArray []interface{}
+	AnythingArray []any
 	String        *string
 }
 
