@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"html/template"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+	"talent-cards/pkg/types"
 )
 
 // Regex to find an "innermost" tag, i.e., one that contains no other tags.
@@ -54,8 +56,13 @@ var powerMap = map[string]diceInfo{
 	"social":  {"p", "social"},
 }
 
+type Ref struct {
+	refType string
+	value   string
+}
+
 // processSingleTag takes a tag type and its content and returns the HTML replacement.
-func processSingleTag(tagType, content string) string {
+func processSingleTag(tagType, content string) (string, *Ref) {
 	args := strings.Split(content, "|")
 	for i := range args {
 		args[i] = strings.TrimSpace(args[i])
@@ -63,51 +70,59 @@ func processSingleTag(tagType, content string) string {
 
 	switch tagType {
 	case "i":
-		return fmt.Sprintf("<i>%s</i>", args[0])
+		return fmt.Sprintf("<i>%s</i>", args[0]), nil
 	case "b":
-		return fmt.Sprintf("<b>%s</b>", args[0])
+		return fmt.Sprintf("<b>%s</b>", args[0]), nil
 	case "s":
-		return fmt.Sprintf("<s>%s</s>", args[0])
+		return fmt.Sprintf("<s>%s</s>", args[0]), nil
 	case "title":
-		return fmt.Sprintf(`<span style="font-weight: bold; text-transform: uppercase;">%s</span>`, args[0])
+		return fmt.Sprintf(`<span style="font-weight: bold; text-transform: uppercase;">%s</span>`, args[0]), nil
 	case "table":
-		return fmt.Sprintf(`<span class="table-ref">[See Table: %s]</span>`, args[0])
+		tableInfo := strings.Split(args[0], ":")
+		ref := Ref{
+			refType: "table",
+			value:   tableInfo[0],
+		}
+		return fmt.Sprintf(`<span class="table-ref">%s*</span>`, tableInfo[1]), &ref
 	case "dice":
-		return handleDiceTag(args)
+		return handleDiceTag(args), nil
 	case "difficulty":
-		return handleDifficultyTag(args)
+		return handleDifficultyTag(args), nil
 	case "symbols":
-		return fmt.Sprintf(`<span class="genesys">%s</span>`, args[0])
+		return fmt.Sprintf(`<span class="genesys">%s</span>`, args[0]), nil
 	case "combat", "general", "social":
-		return handlePowerTag(tagType, args)
+		return handlePowerTag(tagType, args), nil
 	case "talent":
-		return fmt.Sprintf(`<span class="talent">%s</span>`, args[0])
+		return fmt.Sprintf(`<span class="talent">%s</span>`, args[0]), nil
 	case "skill":
-		return fmt.Sprintf(`<span class="skill">%s</span>`, args[0])
+		return fmt.Sprintf(`<span class="skill">%s</span>`, args[0]), nil
 	case "rule":
-		return fmt.Sprintf(`<span class="rule">%s</span>`, args[0])
+		return fmt.Sprintf(`<span class="rule">%s</span>`, args[0]), nil
 	case "quality":
-		return fmt.Sprintf(`<span class="quality">%s</span>`, args[0])
+		return fmt.Sprintf(`<span class="quality">%s</span>`, args[0]), nil
 	case "spell":
-		return fmt.Sprintf(`<span class="spell">%s (%s)</span>`, args[0], args[len(args)-1])
+		return fmt.Sprintf(`<span class="spell">%s (%s)</span>`, args[0], args[len(args)-1]), nil
 	case "adversary":
-		return fmt.Sprintf(`<span class="adversary">%s</span>`, args[0])
+		return fmt.Sprintf(`<span class="adversary">%s</span>`, args[0]), nil
+	case "gear":
+		// return fmt.Sprintf(`<span class="gear">%s (%s)</span>`, args[0], args[len(args)-1]), nil
+		return fmt.Sprintf(`<span class="gear">%s</span>`, args[0]), nil
 	default:
 		// If tag is not recognized, return the original text to avoid losing it.
+		// If you are trying to add support for new tags, this is the place to debug
 		if content == "" {
-			return fmt.Sprintf("{%s}", tagType)
+			return fmt.Sprintf("%s", tagType), nil
 		}
-		return fmt.Sprintf("{%s %s}", tagType, content)
+		return fmt.Sprintf("%s %s", tagType, content), nil
 	}
 }
 
 // parseLine iteratively finds and replaces the innermost tags until none are left.
-func parseLine(line string) string {
+func parseLine(line string) (string, []Ref) {
+	refs := []Ref{}
 	for {
-		// Find the next innermost tag.
 		match := innermostTagRegex.FindStringSubmatch(line)
 		if match == nil {
-			// No more tags found, parsing is done for this line.
 			break
 		}
 
@@ -118,34 +133,41 @@ func parseLine(line string) string {
 			content = match[2]
 		}
 
-		// Get the HTML replacement for this single tag.
-		replacement := processSingleTag(tagType, content)
+		replacement, ref := processSingleTag(tagType, content)
+		if ref != nil && !slices.Contains(refs, *ref) {
+			refs = append(refs, *ref)
+		}
 
-		// Replace only the first occurrence of the matched tag.
 		line = strings.Replace(line, fullMatchString, replacement, 1)
 	}
-	return line
+	return line, refs
 }
-
-// var maxCharacterCount = 850
 
 // ParseDescriptionToHTML converts an array of description strings into a single,
 // safe HTML string with custom syntax replaced by HTML tags.
 func ParseDescriptionToHTML(description []string) template.HTML {
 	var htmlStrings []string
-	// characterCount := 0
+	refs := []Ref{}
 	for _, line := range description {
-		// characterCount += len(line)
-		// if characterCount > maxCharacterCount {
-		// 	htmlStrings = append(htmlStrings, "...")
-		// 	break
-		// }
-		htmlLine := parseLine(line)
+		htmlLine, lineRefs := parseLine(line)
 		htmlStrings = append(htmlStrings, htmlLine)
+		for _, ref := range lineRefs {
+			if !slices.Contains(refs, ref) {
+				refs = append(refs, ref)
+			}
+		}
 	}
 
-	// Join paragraphs with <br> tags for line breaks.
 	finalHTML := strings.Join(htmlStrings, "<br><br>")
+	for _, ref := range refs {
+		switch ref.refType {
+		case "table":
+			finalHTML += fmt.Sprintf(`<span class="table-ref"> *[See Table %s] </span>`, ref.value)
+			break
+
+		}
+
+	}
 	return template.HTML(finalHTML)
 }
 
@@ -229,7 +251,7 @@ func handleDifficultyTag(args []string) string {
 	diceHTML := fmt.Sprintf(`<span class="genesys dice %s">%s</span><span class="genesys dice %s">%s</span>`,
 		challengeInfo.class, challengeDice, difficultyInfo.class, difficultyDice)
 
-	return fmt.Sprintf(`%s (%s)%s`, strings.Title(difficultyName), diceHTML, skill)
+	return fmt.Sprintf(`%s (%s)%s`, strings.ToTitle(difficultyName), diceHTML, skill)
 }
 
 func handlePowerTag(tagType string, args []string) string {
@@ -241,4 +263,19 @@ func handlePowerTag(tagType string, args []string) string {
 		return ""
 	}
 	return fmt.Sprintf(`<span class="genesys %s">%s</span>%s`, info.class, info.char, args[0])
+}
+
+func ParseActivation(activation types.TalentActivation) template.HTML {
+	switch activation {
+	case types.ActiveAction:
+		return template.HTML("Action")
+	case types.ActiveIncidental:
+		return template.HTML("Incidental")
+	case types.ActiveIncidentalOutOfTurn:
+		return template.HTML("Incidental<br/>(Out of Turn)")
+	case types.ActiveManeuver:
+		return template.HTML("Maneuver")
+	default:
+		return template.HTML("<span style=\"font-weight: normal;\">Passive</span>")
+	}
 }

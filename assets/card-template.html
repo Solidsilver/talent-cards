@@ -1,143 +1,147 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Talent Card</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/gh/Solidsilver/FFG-Genesys-Glyphs-and-Dice/web/genesys.css"
-        />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-            rel="stylesheet"
-        />
-        <style>
-            @import url("https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Oswald:wght@500&display=swap");
 
-            html,
-            body {
-                height: 100%;
-                margin: 0;
-                padding: 0;
-                font-family: "Roboto Condensed", sans-serif;
-                /* A simple background for the area around the card */
-                background-color: #374151;
-            }
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Talent Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Solidsilver/FFG-Genesys-Glyphs-and-Dice/web/genesys.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+        rel="stylesheet" />
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Oswald:wght@500&display=swap");
 
-            .card {
-                width: 750px;
-                height: 1050px;
-                border: 1px solid #4a5568;
-                box-shadow:
-                    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-                    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-                display: flex;
-                flex-direction: column;
-                padding: 1.5em 1.5em 0.75em;
-                box-sizing: border-box;
-                border-top: 20px solid #f68c29;
-                border-bottom: 20px solid #f68c29;
-                color: #2d3748;
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: "Roboto Condensed", sans-serif;
+            /* A simple background for the area around the card */
+            background-color: #374151;
+        }
 
-                /* background */
-                background: url("https://cdn.jsdelivr.net/gh/c-bec-k/GenesysRPG/img/genesysbg.png");
-                background-position: center;
-                background-size: cover;
-            }
+        .card {
+            width: 750px;
+            height: 1050px;
+            /* border: 1px solid #4a5568; */
+            box-shadow:
+                0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5em 1.5em 0.75em;
+            box-sizing: border-box;
+            /* border-top: 20px solid #f68c29; */
+            /* border-bottom: 20px solid #f68c29; */
+            border: 20px solid #f68c29;
+            /* border-radius: 30px; */
 
-            .title {
-                font-family: "Bebas Neue", sans-serif;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                border-bottom: 3px solid #718096;
-                padding-bottom: 12px;
-                margin-bottom: 16px;
-                color: #2d3748;
-            }
+            color: #2d3748;
 
-            .info-bar {
-                background-color: #e2e8f0;
-                border-left: 5px solid #718096;
-            }
+            /* background */
+            background: url("https://cdn.jsdelivr.net/gh/c-bec-k/GenesysRPG/img/genesysbg.png");
+            background-position: center;
+            background-size: cover;
+        }
 
-            .description {
-                flex-grow: 1;
-                line-height: 1.6em;
-                color: #2d3748;
-            }
+        .title {
+            font-family: "Bebas Neue", sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 3px solid #718096;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            color: #2d3748;
+        }
 
-            .description .italic {
-                font-style: italic;
-                color: #4a5568;
-            }
+        .info-bar {
+            background-color: #e2e8f0;
+            border-left: 5px solid #718096;
+        }
 
-            .description .skill {
-                font-weight: bold;
-                color: #2f855a;
-            }
+        .description {
+            flex-grow: 1;
+            line-height: 1.6em;
+            color: #2d3748;
+        }
 
-            .description .talent {
-                font-weight: bold;
-                color: #2b6cb0;
-            }
+        .description .italic {
+            font-style: italic;
+            color: #4a5568;
+        }
 
-            .description .quality {
-                color: #b3992f;
-                /* font-style: italic; */
-            }
+        .description .skill {
+            font-weight: bold;
+            color: #2f855a;
+        }
 
-            .description .rule {
-                color: #771214;
-                text-decoration: underline;
-            }
+        .description .talent {
+            font-weight: bold;
+            color: #2b6cb0;
+        }
 
-            .description .table-ref {
-                font-weight: bold;
-                color: #5a67d8;
-            }
+        .description .quality {
+            color: #b3992f;
+            /* font-style: italic; */
+        }
 
-            .description .spell {
-                font-weight: bold;
-                color: #894db1;
-            }
+        .description .rule {
+            color: #771214;
+            text-decoration: underline;
+        }
 
-            .description .adversary {
-                font-weight: bold;
-                color: #f68c29;
-            }
+        .description .table-ref {
+            font-weight: bold;
+            color: #5a67d8;
+        }
 
-            .source {
-                font-style: italic;
-                color: #718096;
-                border-top: 1px solid #ccc;
-                padding-top: 10px;
-            }
-        </style>
-    </head>
+        .description .spell {
+            font-weight: bold;
+            color: #894db1;
+        }
 
-    <body>
-        <div id="card" class="card">
-            <h1 class="title text-6xl text-center">{{.Name}}</h1>
+        .description .adversary {
+            font-weight: bold;
+            color: #f68c29;
+        }
 
-            <div
-                class="grid grid-cols-3 gap-2 text-center mb-6 text-gray-700 font-bold items-center text-4xl"
-            >
-                <div class="info-bar rounded-md p-3">Tier: {{.Tier}}</div>
-                <div class="info-bar rounded-md p-3">{{.Activation}}</div>
-                <div class="info-bar rounded-md p-3">
-                    {{if .Ranked}}Ranked{{else}}Unranked{{end}}
-                </div>
-            </div>
+        .description .gear {
+            font-weight: bold;
+            color: #ab9278;
+        }
 
-            <div class="description text-4xl p-2">{{.Description}}</div>
+        .source {
+            font-style: italic;
+            color: #718096;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+    </style>
+</head>
 
-            <div class="source text-center text-xl mt-auto pt-3">
-                Source: {{.Source}} (p. {{.Page}})
+<body>
+    <div id="card" class="card">
+        <h1 class="title text-6xl text-center">{{.Name}}</h1>
+
+        <div class="grid grid-cols-3 gap-2 text-center mb-6 text-gray-700 font-bold items-center text-4xl">
+            <div class="info-bar rounded-md p-3">Tier: {{.Tier}}</div>
+            <div class="info-bar rounded-md p-3">{{.Activation}}</div>
+            <div class="info-bar rounded-md p-3">
+                {{if .Ranked}}Ranked{{else}}Unranked{{end}}
             </div>
         </div>
-    </body>
+
+        <div class="description text-4xl p-2">{{.Description}}</div>
+
+        <div class="source text-center text-xl mt-auto pt-3">
+            Source: {{.Source}} (p. {{.Page}})
+        </div>
+    </div>
+</body>
+
 </html>

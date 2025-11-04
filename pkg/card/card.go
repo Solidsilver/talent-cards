@@ -27,18 +27,25 @@ type CardTemplateData struct {
 	Source      string
 }
 
-func parseActivation(activation types.TalentActivation) template.HTML {
-	switch activation {
-	case types.ActiveAction:
-		return template.HTML("Action")
-	case types.ActiveIncidental:
-		return template.HTML("Incidental")
-	case types.ActiveIncidentalOutOfTurn:
-		return template.HTML("Incidental<br/>(Out of Turn)")
-	case types.ActiveManeuver:
-		return template.HTML("Maneuver")
-	default:
-		return template.HTML("<span style=\"font-weight: normal;\">Passive</span>")
+var parentContext, parentContextCancel = chromedp.NewExecAllocator(context.Background(),
+	chromedp.ExecPath(getExecPath()),
+	chromedp.Headless,
+	chromedp.NoDefaultBrowserCheck,
+	chromedp.NoFirstRun,
+	// chromedp.CombinedOutput(os.Stdout),
+)
+
+func Cleanup() {
+	parentContextCancel()
+}
+
+var templateBytes []byte
+
+func init() {
+	var err error
+	templateBytes, err = os.ReadFile("assets/card-template.html")
+	if err != nil {
+		panic(fmt.Errorf("failed to read HTML template: %w", err))
 	}
 }
 
@@ -49,16 +56,16 @@ func CreateTalentCardHTML(source string, talent types.TalentSchema, outputDir st
 		Name:        talent.Name,
 		Tier:        talent.Tier,
 		Ranked:      talent.Ranked,
-		Activation:  parseActivation(talent.Activation),
+		Activation:  parser.ParseActivation(talent.Activation),
 		Description: parser.ParseDescriptionToHTML(talent.Description),
 		Page:        talent.Page,
 		Source:      source,
 	}
 
 	// 2. Read and execute the HTML template
-	templateBytes, err := os.ReadFile("assets/card-template.html")
-	if err != nil {
-		return fmt.Errorf("failed to read HTML template: %w", err)
+	// templateBytes, err := os.ReadFile("assets/card-template.html")
+	if templateBytes == nil {
+		return fmt.Errorf("failed to read HTML template")
 	}
 
 	tmpl, err := template.New("card").Parse(string(templateBytes))
@@ -88,27 +95,19 @@ func CreateTalentCardHTML(source string, talent types.TalentSchema, outputDir st
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	parentContext, parentContextCancel := chromedp.NewExecAllocator(context.Background(),
-		chromedp.ExecPath(getExecPath()),
-		chromedp.Headless,
-		chromedp.NoDefaultBrowserCheck,
-		chromedp.NoFirstRun,
-		chromedp.CombinedOutput(os.Stdout),
-	)
-	defer parentContextCancel()
 	ctx, cancel := chromedp.NewContext(parentContext)
 	defer cancel()
 
 	ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
-	var buf []byte
+	var screenshotBuf []byte
 	fileURL := "file://" + filePath
 	err = chromedp.Run(ctx,
 		chromedp.Navigate(fileURL),
 		chromedp.WaitVisible(`#card`, chromedp.ByID),
-		// chromedp.Sleep(120*time.Millisecond),
-		chromedp.Screenshot(`#card`, &buf, chromedp.ByID),
+		chromedp.Sleep(200*time.Millisecond), // Make sure the browser has time to load fonts, styles, and images
+		chromedp.Screenshot(`#card`, &screenshotBuf, chromedp.ByID),
 	)
 
 	if err != nil {
@@ -117,7 +116,7 @@ func CreateTalentCardHTML(source string, talent types.TalentSchema, outputDir st
 
 	safeFilename := strings.ReplaceAll(talent.Name, "/", "-")
 	outputPath := filepath.Join(outputDir, fmt.Sprintf("%s.png", safeFilename))
-	if err := os.WriteFile(outputPath, buf, 0644); err != nil {
+	if err := os.WriteFile(outputPath, screenshotBuf, 0644); err != nil {
 		return fmt.Errorf("failed to save PNG: %w", err)
 	}
 

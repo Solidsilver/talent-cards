@@ -40,29 +40,35 @@ func main() {
 	// Use a WaitGroup to process cards in parallel for speed.
 	var wg sync.WaitGroup
 	// Use a semaphore to limit concurrent browser instances to avoid overwhelming your system.
-	sem := make(chan struct{}, 8) // Limit to 8 concurrent jobs
+	talents := make(chan types.TalentSchema, 100)
 
-	for _, talent := range sourcebook.Talent {
+	for range 10 {
 		wg.Add(1)
-		sem <- struct{}{} // Acquire a spot
-
-		go func(t types.TalentSchema) {
+		go func(tchan <-chan types.TalentSchema, wg *sync.WaitGroup) {
 			defer wg.Done()
-			defer func() { <-sem }() // Release the spot
-
-			fmt.Printf("  - Generating card for: %s\n", t.Name)
-			// *** THIS IS THE ONLY LINE THAT REALLY CHANGED ***
-			err := card.CreateTalentCardHTML(sourcebook.Meta.Source.Full, t, outputDir)
-			if err != nil {
-				// Log errors instead of crashing the whole process.
-				log.Printf("Could not create card for %s: %v", t.Name, err)
+			for t := range tchan {
+				fmt.Printf("  - Generating card for: %s\n", t.Name)
+				err := card.CreateTalentCardHTML(sourcebook.Meta.Source.Full, t, outputDir)
+				if err != nil {
+					log.Printf("Could not create card for %s: %v", t.Name, err)
+				}
 			}
-		}(talent)
+		}(talents, &wg)
 	}
 
-	wg.Wait() // Wait for all goroutines to finish.
-	close(sem)
+	for _, talent := range sourcebook.Talent {
+		talents <- talent
+	}
+	close(talents)
+	wg.Wait()
+
+	card.Cleanup()
 
 	fmt.Println("\nCard generation complete!")
 	fmt.Printf("Cards saved in: %s\n", outputDir)
+}
+
+func TalentWorker(wg *sync.WaitGroup, talent chan *types.TalentSchema) {
+	wg.Add(1)
+
 }
